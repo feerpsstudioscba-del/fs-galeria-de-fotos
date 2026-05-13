@@ -1,6 +1,6 @@
 # FS Galeria de Fotos
 
-Plugin WordPress com widget Elementor para galeria de fotos imobiliaria, com suporte a galeria manual, JetEngine/meta field, layout em mosaico, Masonry, lightbox e marca d'agua visual.
+Plugin WordPress com widget Elementor para galerias de fotos, com suporte a galeria manual, JetEngine/meta field, layout em mosaico, Masonry, lightbox e marca d'agua visual.
 
 ## Recursos
 
@@ -31,11 +31,11 @@ Plugin WordPress com widget Elementor para galeria de fotos imobiliaria, com sup
 
 ## Uso Com JetEngine
 
-1. Crie um campo Gallery ou Media no JetEngine vinculado ao CPT do imovel.
-2. Salve as fotos no post do imovel.
+1. Crie um campo Gallery ou Media no JetEngine vinculado ao post type desejado.
+2. Salve as fotos no post, pagina ou conteudo correspondente.
 3. No widget, selecione `JetEngine / Meta Field`.
 4. Informe o nome/chave do campo, por exemplo `galeria` ou `galeria_fotos`.
-5. Em templates single do Elementor, configure o preview para um imovel real ou informe o **Post ID manual**.
+5. Em templates single do Elementor, configure o preview para um conteudo real ou informe o **Post ID manual**.
 
 O widget tenta detectar o post atual por:
 
