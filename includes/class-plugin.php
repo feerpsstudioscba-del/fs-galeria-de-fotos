@@ -17,6 +17,10 @@ class FS_Galeria_Fotos_Plugin {
 
 	private function __construct() {
 		add_action( 'elementor/init', array( $this, 'init' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'register_styles' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'register_scripts' ) );
+		add_action( 'elementor/editor/before_enqueue_scripts', array( $this, 'register_styles' ) );
+		add_action( 'elementor/editor/before_enqueue_scripts', array( $this, 'register_scripts' ) );
 		add_action( 'elementor/frontend/after_register_styles', array( $this, 'register_styles' ) );
 		add_action( 'elementor/frontend/after_register_scripts', array( $this, 'register_scripts' ) );
 	}

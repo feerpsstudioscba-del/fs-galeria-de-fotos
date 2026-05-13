@@ -49,8 +49,34 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 		$this->start_controls_section(
 			'section_images',
 			array(
-				'label' => 'Fotos',
+				'label' => 'Configuracoes da galeria',
 				'tab'   => Controls_Manager::TAB_CONTENT,
+			)
+		);
+
+		$this->add_control(
+			'gallery_source',
+			array(
+				'label'   => 'Origem das fotos',
+				'type'    => Controls_Manager::SELECT,
+				'default' => 'manual',
+				'options' => array(
+					'manual' => 'Galeria Manual',
+					'meta'   => 'JetEngine / Meta Field',
+				),
+			)
+		);
+
+		$this->add_control(
+			'gallery_type',
+			array(
+				'label'   => 'Tipo de Galeria',
+				'type'    => Controls_Manager::SELECT,
+				'default' => 'grid',
+				'options' => array(
+					'grid'    => 'Grid',
+					'masonry' => 'Masonry',
+				),
 			)
 		);
 
@@ -61,6 +87,7 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 				'type'        => Controls_Manager::GALLERY,
 				'description' => 'Use imagens manuais ou uma tag dinamica do Elementor/JetEngine.',
 				'dynamic'     => array( 'active' => true ),
+				'condition'   => array( 'gallery_source' => 'manual' ),
 			)
 		);
 
@@ -70,6 +97,30 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 				'label'       => 'Campo meta do JetEngine',
 				'type'        => Controls_Manager::TEXT,
 				'description' => 'Opcional. Informe a chave do campo quando as imagens estiverem salvas no post atual.',
+				'condition'   => array( 'gallery_source' => 'meta' ),
+			)
+		);
+
+		$this->add_control(
+			'manual_post_id',
+			array(
+				'label'       => 'Post ID manual',
+				'type'        => Controls_Manager::NUMBER,
+				'description' => 'Opcional. Use quando o template single nao conseguir detectar o imovel automaticamente.',
+				'min'         => 1,
+			)
+		);
+
+		$this->add_control(
+			'meta_fallback_lookup',
+			array(
+				'label'        => 'Buscar post com campo se o atual estiver vazio',
+				'type'         => Controls_Manager::SWITCHER,
+				'label_on'     => 'Sim',
+				'label_off'    => 'Nao',
+				'return_value' => 'yes',
+				'default'      => 'yes',
+				'condition'    => array( 'gallery_source' => 'meta' ),
 			)
 		);
 
@@ -80,6 +131,20 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 				'type'    => Controls_Manager::SELECT,
 				'default' => 'large',
 				'options' => $this->get_image_size_options(),
+			)
+		);
+
+		$this->add_control(
+			'gallery_order',
+			array(
+				'label'   => 'Ordem das fotos',
+				'type'    => Controls_Manager::SELECT,
+				'default' => 'ASC',
+				'options' => array(
+					'ASC'    => 'ASC',
+					'DESC'   => 'DESC',
+					'RANDOM' => 'Random',
+				),
 			)
 		);
 
@@ -130,12 +195,42 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 		);
 
 		$this->add_control(
+			'watermark_source',
+			array(
+				'label'     => "Origem da marca d'agua",
+				'type'      => Controls_Manager::SELECT,
+				'default'   => 'manual',
+				'options'   => array(
+					'manual' => 'Imagem padrao',
+					'meta'   => 'JetEngine / Meta Field',
+				),
+				'condition' => array( 'watermark_enabled' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
 			'watermark_image',
 			array(
 				'label'     => "Imagem da marca d'agua",
 				'type'      => Controls_Manager::MEDIA,
 				'dynamic'   => array( 'active' => true ),
-				'condition' => array( 'watermark_enabled' => 'yes' ),
+				'condition' => array(
+					'watermark_enabled' => 'yes',
+					'watermark_source'  => 'manual',
+				),
+			)
+		);
+
+		$this->add_control(
+			'watermark_meta_key',
+			array(
+				'label'       => "Campo JetEngine da marca d'agua",
+				'type'        => Controls_Manager::TEXT,
+				'description' => 'Informe a chave do campo de imagem do JetEngine. Tambem aceita a tag dinamica Custom Image no campo de imagem padrao.',
+				'condition'   => array(
+					'watermark_enabled' => 'yes',
+					'watermark_source'  => 'meta',
+				),
 			)
 		);
 
@@ -256,6 +351,24 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 				'selectors'  => array(
 					'{{WRAPPER}} .fs-imob-gallery' => '--fs-gallery-height: {{SIZE}}{{UNIT}};',
 				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'masonry_columns',
+			array(
+				'label'     => 'Colunas no Masonry',
+				'type'      => Controls_Manager::NUMBER,
+				'default'   => 4,
+				'tablet_default' => 3,
+				'mobile_default' => 3,
+				'min'       => 3,
+				'max'       => 10,
+				'step'      => 1,
+				'selectors' => array(
+					'{{WRAPPER}} .fs-imob-gallery' => '--fs-masonry-columns: {{VALUE}};',
+				),
+				'condition' => array( 'gallery_type' => 'masonry' ),
 			)
 		);
 
@@ -438,7 +551,7 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 			array(
 				'label'     => 'Overlay no hover',
 				'type'      => Controls_Manager::COLOR,
-				'default'   => 'rgba(0,0,0,0.18)',
+				'default'   => 'rgba(0,0,0,0.22)',
 				'selectors' => array(
 					'{{WRAPPER}} .fs-imob-gallery__item::after' => 'background: {{VALUE}};',
 				),
@@ -519,7 +632,7 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 		$this->add_responsive_control(
 			'watermark_width',
 			array(
-				'label'      => "Largura da marca d'agua",
+				'label'      => "Tamanho da marca d'agua",
 				'type'       => Controls_Manager::SLIDER,
 				'size_units' => array( 'px', '%', 'vw' ),
 				'default'    => array(
@@ -533,6 +646,23 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 				'mobile_default' => array(
 					'unit' => 'px',
 					'size' => 100,
+				),
+				'range'      => array(
+					'px' => array(
+						'min'  => 20,
+						'max'  => 600,
+						'step' => 1,
+					),
+					'%'  => array(
+						'min'  => 5,
+						'max'  => 100,
+						'step' => 1,
+					),
+					'vw' => array(
+						'min'  => 2,
+						'max'  => 80,
+						'step' => 1,
+					),
 				),
 				'selectors'  => array(
 					'{{WRAPPER}} .fs-imob-gallery__watermark' => 'width: {{SIZE}}{{UNIT}};',
@@ -632,16 +762,21 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 
 	protected function render() {
 		$settings = $this->get_settings_for_display();
-		$images   = $this->get_gallery_images( $settings );
+		$raw_settings = $this->get_settings();
+		wp_enqueue_style( 'fs-imob-gallery' );
+		wp_enqueue_script( 'fs-imob-gallery' );
+
+		$gallery_data = $this->get_gallery_images( $settings, $raw_settings );
+		$images       = $gallery_data['images'];
 
 		if ( empty( $images ) ) {
 			if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
-				echo '<div class="fs-imob-gallery__notice">Selecione imagens para a galeria.</div>';
+				$this->render_empty_debug( $gallery_data['debug'] );
 			}
 			return;
 		}
 
-		$watermark_url = $this->get_watermark_url( $settings );
+		$watermark_url = $this->get_watermark_url( $settings, $raw_settings );
 		$watermark_on  = 'yes' === ( $settings['watermark_enabled'] ?? '' ) && ! empty( $watermark_url );
 
 		if ( 'yes' === ( $settings['watermark_enabled'] ?? '' ) && empty( $watermark_url ) ) {
@@ -653,10 +788,13 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 		$position       = $settings['main_position'] ?? 'left';
 		$mobile_order   = $settings['mobile_order'] ?? 'main_first';
 		$mobile_columns = $settings['mobile_thumb_columns'] ?? '2';
+		$gallery_type   = $settings['gallery_type'] ?? 'grid';
 		$lightbox       = 'yes' === ( $settings['enable_lightbox'] ?? '' );
 		$display        = $settings['watermark_display'] ?? 'mosaic';
+		$total          = count( $images );
 		$root_classes   = array(
 			'fs-imob-gallery',
+			'fs-imob-gallery--type-' . sanitize_html_class( $gallery_type ),
 			'fs-imob-gallery--main-' . sanitize_html_class( $position ),
 			'fs-imob-gallery--mobile-' . sanitize_html_class( $mobile_order ),
 			'fs-imob-gallery--mobile-cols-' . sanitize_html_class( $mobile_columns ),
@@ -664,6 +802,10 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 
 		if ( $watermark_on ) {
 			$root_classes[] = 'fs-imob-gallery--watermark-enabled';
+		}
+
+		if ( 1 === $total ) {
+			$root_classes[] = 'fs-imob-gallery--single';
 		}
 
 		$attrs = array(
@@ -681,21 +823,39 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 		);
 
 		echo '<div ' . $this->render_attrs( $attrs ) . '>';
+
+		if ( 'masonry' === $gallery_type ) {
+			$this->render_masonry_gallery( $images, $settings, $watermark_on, $watermark_url, $lightbox );
+			echo '<script type="application/json" class="fs-imob-gallery__data">' . wp_json_encode( $images, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT ) . '</script>';
+			echo '</div>';
+			return;
+		}
+
 		echo '<div class="fs-imob-gallery__mosaic">';
 		$this->render_item( $images[0], 0, 'main', $settings, $watermark_on, $watermark_url, $lightbox );
-		echo '<div class="fs-imob-gallery__thumbs">';
 
-		$total      = count( $images );
 		$thumbs     = array_slice( $images, 1, 4 );
 		$last_index = count( $thumbs ) - 1;
-		foreach ( $thumbs as $i => $image ) {
-			$remaining = ( $i === $last_index && $total > 5 ) ? $total - 5 : 0;
-			$this->render_item( $image, $i + 1, 'thumb', $settings, $watermark_on, $watermark_url, $lightbox, $remaining );
+
+		if ( ! empty( $thumbs ) ) {
+			echo '<div class="fs-imob-gallery__thumbs">';
+			foreach ( $thumbs as $i => $image ) {
+				$remaining = ( $i === $last_index && $total > 5 ) ? $total - 5 : 0;
+				$this->render_item( $image, $i + 1, 'thumb', $settings, $watermark_on, $watermark_url, $lightbox, $remaining );
+			}
+			echo '</div>';
 		}
 
 		echo '</div>';
-		echo '</div>';
 		echo '<script type="application/json" class="fs-imob-gallery__data">' . wp_json_encode( $images, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT ) . '</script>';
+		echo '</div>';
+	}
+
+	private function render_masonry_gallery( $images, $settings, $watermark_on, $watermark_url, $lightbox ) {
+		echo '<div class="fs-imob-gallery__masonry">';
+		foreach ( $images as $index => $image ) {
+			$this->render_item( $image, $index, 'masonry', $settings, $watermark_on, $watermark_url, $lightbox );
+		}
 		echo '</div>';
 	}
 
@@ -712,7 +872,7 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 		}
 
 		echo '<' . esc_html( $tag ) . ' ' . $this->render_attrs( $attrs ) . '>';
-		echo '<img class="fs-imob-gallery__image" src="' . esc_url( $image['url'] ) . '" alt="' . esc_attr( $image['alt'] ) . '" loading="' . ( 0 === $index ? 'eager' : 'lazy' ) . '">';
+		echo '<img class="fs-imob-gallery__image" src="' . esc_url( $image['thumb'] ) . '" alt="' . esc_attr( $image['alt'] ) . '" loading="' . ( 0 === $index ? 'eager' : 'lazy' ) . '">';
 
 		if ( $this->should_render_watermark( $settings, $watermark_on, $type ) ) {
 			echo '<span class="fs-imob-gallery__watermark" aria-hidden="true">';
@@ -742,104 +902,698 @@ class FS_Imob_Gallery_Widget extends Widget_Base {
 		}
 
 		$apply = $settings['watermark_apply_to'] ?? 'all';
-		return 'all' === $apply || ( 'main' === $apply && 'main' === $type ) || ( 'thumbs' === $apply && 'thumb' === $type );
+		return 'all' === $apply || ( 'main' === $apply && 'main' === $type ) || ( 'thumbs' === $apply && in_array( $type, array( 'thumb', 'masonry' ), true ) );
 	}
 
-	private function get_gallery_images( $settings ) {
-		$images = array();
+	private function get_gallery_images( $settings, $raw_settings = array() ) {
+		$post_id      = $this->detect_current_post_id( $settings );
+		$source       = $settings['gallery_source'] ?? 'manual';
+		$meta_key     = isset( $settings['jet_meta_key'] ) ? trim( (string) $settings['jet_meta_key'] ) : '';
+		$dynamic_key  = $this->extract_dynamic_gallery_field( $raw_settings );
+		if ( '' === $meta_key && '' !== $dynamic_key ) {
+			$meta_key = $dynamic_key;
+		}
+		$raw_data     = null;
+		$meta_data    = null;
+		$meta_type    = 'campo nao configurado';
+		$fallback_post_id = 0;
+		$meta_lookup  = array(
+			'found_key'      => '',
+			'available_keys' => array(),
+			'candidate_keys' => array(),
+		);
+		$used_source  = $source;
+		$candidates   = array();
 
-		if ( ! empty( $settings['gallery'] ) && is_array( $settings['gallery'] ) ) {
-			foreach ( $settings['gallery'] as $item ) {
-				$images[] = $this->normalize_image( $item, $settings );
+		if ( 'meta' === $source ) {
+			$meta_lookup = $this->get_meta_lookup( $post_id, $meta_key );
+			$meta_data   = $meta_lookup['value'];
+			$meta_type   = $this->data_type( $meta_data );
+			$raw_data    = $meta_data;
+			$candidates  = $this->extract_image_candidates( $meta_data );
+		} else {
+			$raw_data    = $settings['gallery'] ?? array();
+			$candidates  = $this->extract_image_candidates( $raw_data );
+		}
+
+		if ( empty( $candidates ) && 'manual' === $source && '' !== $meta_key ) {
+			$meta_lookup = $this->get_meta_lookup( $post_id, $meta_key );
+			$meta_data   = $meta_lookup['value'];
+			$meta_type   = $this->data_type( $meta_data );
+			$raw_data    = $meta_data;
+			$candidates  = $this->extract_image_candidates( $meta_data );
+			$used_source = 'meta';
+		}
+
+		if ( empty( $candidates ) && '' !== $meta_key && 'yes' === ( $settings['meta_fallback_lookup'] ?? 'yes' ) ) {
+			$fallback_lookup = $this->find_post_with_meta_gallery( $meta_key, $post_id );
+			if ( ! empty( $fallback_lookup['post_id'] ) ) {
+				$fallback_post_id = absint( $fallback_lookup['post_id'] );
+				$post_id          = $fallback_post_id;
+				$meta_lookup      = array_merge( $meta_lookup, $fallback_lookup );
+				$meta_data        = $fallback_lookup['value'];
+				$meta_type        = $this->data_type( $meta_data );
+				$raw_data         = $meta_data;
+				$candidates       = $this->extract_image_candidates( $meta_data );
+				$used_source      = 'meta-fallback';
 			}
 		}
 
-		if ( empty( $images ) && ! empty( $settings['jet_meta_key'] ) ) {
-			$meta = get_post_meta( get_the_ID(), sanitize_key( $settings['jet_meta_key'] ), true );
-			$images = $this->images_from_meta( $meta, $settings );
+		if ( empty( $candidates ) && 'meta' === $source && ! empty( $settings['gallery'] ) ) {
+			$raw_data    = $settings['gallery'];
+			$candidates  = $this->extract_image_candidates( $raw_data );
+			$used_source = 'manual';
 		}
 
-		return array_values( array_filter( $images ) );
+		$images = $this->normalize_images( $candidates, $post_id );
+		$images = $this->apply_gallery_order( $images, $settings['gallery_order'] ?? 'ASC', $post_id );
+
+		return array(
+			'images' => $images,
+			'debug'  => array(
+				'render_executed'   => 'sim',
+				'post_id'           => $post_id,
+				'field'             => $meta_key,
+				'dynamic_field'     => $dynamic_key,
+				'fallback_post_id'  => $fallback_post_id,
+				'selected_source'   => $source,
+				'used_source'       => $used_source,
+				'meta_type'         => $meta_type,
+				'found_meta_key'    => $meta_lookup['found_key'] ?? '',
+				'candidate_keys'    => $meta_lookup['candidate_keys'] ?? array(),
+				'available_keys'    => $meta_lookup['available_keys'] ?? array(),
+				'before_count'      => count( $candidates ),
+				'after_count'       => count( $images ),
+				'sample'            => $this->safe_debug_sample( $raw_data ),
+			),
+		);
 	}
 
-	private function images_from_meta( $meta, $settings ) {
-		if ( empty( $meta ) ) {
+	private function detect_current_post_id( $settings ) {
+		$manual_id = absint( $settings['manual_post_id'] ?? 0 );
+		if ( $manual_id ) {
+			return $manual_id;
+		}
+
+		$jet_object_id = $this->get_jet_engine_current_object_id();
+		if ( $jet_object_id ) {
+			return $jet_object_id;
+		}
+
+		$the_id = absint( get_the_ID() );
+		if ( $the_id && 'elementor_library' !== get_post_type( $the_id ) ) {
+			return $the_id;
+		}
+
+		$queried_id = absint( get_queried_object_id() );
+		if ( $queried_id && 'elementor_library' !== get_post_type( $queried_id ) ) {
+			return $queried_id;
+		}
+
+		if ( class_exists( '\Elementor\Plugin' ) && \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
+			$preview_id = $this->detect_elementor_preview_post_id();
+			if ( $preview_id ) {
+				return $preview_id;
+			}
+		}
+
+		global $post;
+		return absint( $post->ID ?? 0 );
+	}
+
+	private function get_jet_engine_current_object_id() {
+		if ( ! function_exists( 'jet_engine' ) || empty( jet_engine()->listings ) || empty( jet_engine()->listings->data ) ) {
+			return 0;
+		}
+
+		$data = jet_engine()->listings->data;
+
+		if ( method_exists( $data, 'get_current_object_id' ) ) {
+			$object_id = absint( $data->get_current_object_id() );
+			if ( $object_id && 'elementor_library' !== get_post_type( $object_id ) ) {
+				return $object_id;
+			}
+		}
+
+		if ( method_exists( $data, 'get_current_object' ) ) {
+			$object = $data->get_current_object();
+			if ( $object instanceof \WP_Post && 'elementor_library' !== get_post_type( $object->ID ) ) {
+				return absint( $object->ID );
+			}
+		}
+
+		return 0;
+	}
+
+	private function detect_elementor_preview_post_id() {
+		$request_keys = array( 'preview_id', 'post_id', 'editor_post_id', 'elementor-preview', 'post' );
+		foreach ( $request_keys as $key ) {
+			if ( isset( $_REQUEST[ $key ] ) && ! is_array( $_REQUEST[ $key ] ) ) {
+				$value = absint( wp_unslash( $_REQUEST[ $key ] ) );
+				if ( $value ) {
+					return $value;
+				}
+			}
+		}
+
+		if ( ! class_exists( '\Elementor\Plugin' ) || empty( \Elementor\Plugin::$instance->documents ) ) {
+			return 0;
+		}
+
+		$document = \Elementor\Plugin::$instance->documents->get_current();
+		if ( ! $document ) {
+			return 0;
+		}
+
+		foreach ( array( 'preview_id', 'post_id' ) as $setting_key ) {
+			if ( method_exists( $document, 'get_settings' ) ) {
+				$value = absint( $document->get_settings( $setting_key ) );
+				if ( $value ) {
+					return $value;
+				}
+			}
+		}
+
+		if ( method_exists( $document, 'get_main_id' ) ) {
+			return absint( $document->get_main_id() );
+		}
+
+		return 0;
+	}
+
+	private function extract_dynamic_gallery_field( $raw_settings ) {
+		$settings = $this->extract_dynamic_tag_settings( $raw_settings, 'gallery' );
+
+		foreach ( array( 'gallery_field', 'field', 'meta_field', 'dynamic_field_post_meta', 'dynamic_field_post_meta_custom' ) as $key ) {
+			if ( ! empty( $settings[ $key ] ) && is_string( $settings[ $key ] ) ) {
+				return trim( $settings[ $key ] );
+			}
+		}
+
+		return '';
+	}
+
+	private function extract_dynamic_image_field( $raw_settings, $control_name ) {
+		$settings = $this->extract_dynamic_tag_settings( $raw_settings, $control_name );
+
+		foreach ( array( 'img_field', 'field', 'meta_field', 'dynamic_field_post_meta', 'dynamic_field_post_meta_custom' ) as $key ) {
+			if ( ! empty( $settings[ $key ] ) && is_string( $settings[ $key ] ) ) {
+				return trim( $settings[ $key ] );
+			}
+		}
+
+		return '';
+	}
+
+	private function extract_dynamic_tag_settings( $raw_settings, $control_name ) {
+		if ( empty( $raw_settings['__dynamic__'][ $control_name ] ) ) {
 			return array();
 		}
 
-		if ( is_string( $meta ) ) {
-			$decoded = json_decode( $meta, true );
-			if ( json_last_error() === JSON_ERROR_NONE ) {
-				$meta = $decoded;
-			} else {
-				$meta = array_map( 'trim', explode( ',', $meta ) );
+		$tag_text = $raw_settings['__dynamic__'][ $control_name ];
+		$settings = array();
+
+		if ( class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->dynamic_tags ) && method_exists( \Elementor\Plugin::$instance->dynamic_tags, 'tag_text_to_tag_data' ) ) {
+			$tag_data = \Elementor\Plugin::$instance->dynamic_tags->tag_text_to_tag_data( $tag_text );
+			if ( ! empty( $tag_data['settings'] ) && is_array( $tag_data['settings'] ) ) {
+				$settings = $tag_data['settings'];
 			}
 		}
 
-		if ( ! is_array( $meta ) ) {
-			$meta = array( $meta );
+		if ( empty( $settings ) && preg_match( '/settings="([^"]+)"/', $tag_text, $matches ) ) {
+			$decoded = json_decode( urldecode( html_entity_decode( $matches[1], ENT_QUOTES, 'UTF-8' ) ), true );
+			if ( is_array( $decoded ) ) {
+				$settings = $decoded;
+			}
 		}
 
+		return $settings;
+	}
+
+	private function get_meta_lookup( $post_id, $meta_key ) {
+		$result = array(
+			'value'          => null,
+			'found_key'      => '',
+			'candidate_keys' => $this->build_meta_key_candidates( $meta_key ),
+			'available_keys' => array(),
+		);
+
+		if ( ! $post_id ) {
+			return $result;
+		}
+
+		$all_meta = get_post_meta( $post_id );
+		if ( is_array( $all_meta ) ) {
+			$result['available_keys'] = array_keys( $all_meta );
+		}
+
+		foreach ( $result['candidate_keys'] as $candidate_key ) {
+			if ( '' === $candidate_key ) {
+				continue;
+			}
+
+			$value = get_post_meta( $post_id, $candidate_key, true );
+			if ( $this->meta_value_has_content( $value ) ) {
+				$result['value']     = $value;
+				$result['found_key'] = $candidate_key;
+				return $result;
+			}
+		}
+
+		if ( '' !== $meta_key && ! empty( $all_meta ) ) {
+			$wanted = $this->normalize_meta_key_for_compare( $meta_key );
+			foreach ( $all_meta as $existing_key => $values ) {
+				if ( $wanted !== $this->normalize_meta_key_for_compare( $existing_key ) ) {
+					continue;
+				}
+
+				$value = get_post_meta( $post_id, $existing_key, true );
+				if ( $this->meta_value_has_content( $value ) ) {
+					$result['value']     = $value;
+					$result['found_key'] = $existing_key;
+					return $result;
+				}
+			}
+		}
+
+		if ( '' === $meta_key && ! empty( $all_meta ) ) {
+			foreach ( $all_meta as $existing_key => $values ) {
+				$value      = get_post_meta( $post_id, $existing_key, true );
+				$candidates = $this->extract_image_candidates( $value );
+				$images     = $this->normalize_images( $candidates, $post_id );
+				if ( ! empty( $images ) ) {
+					$result['value']     = $value;
+					$result['found_key'] = $existing_key;
+					return $result;
+				}
+			}
+		}
+
+		if ( '' !== $meta_key ) {
+			$result['value'] = get_post_meta( $post_id, $meta_key, true );
+		}
+
+		return $result;
+	}
+
+	private function find_post_with_meta_gallery( $meta_key, $exclude_post_id = 0 ) {
+		global $wpdb;
+
+		$result = array(
+			'value'     => null,
+			'found_key' => '',
+			'post_id'   => 0,
+		);
+
+		$candidate_keys = $this->build_meta_key_candidates( $meta_key );
+		if ( empty( $candidate_keys ) ) {
+			return $result;
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $candidate_keys ), '%s' ) );
+		$params       = $candidate_keys;
+		$sql          = "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE meta_key IN ($placeholders) AND meta_value <> ''";
+
+		if ( $exclude_post_id ) {
+			$sql      .= ' AND post_id <> %d';
+			$params[] = absint( $exclude_post_id );
+		}
+
+		$sql .= ' ORDER BY post_id DESC LIMIT 50';
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
+
+		foreach ( $rows as $row ) {
+			$candidates = $this->extract_image_candidates( $row->meta_value );
+			$images     = $this->normalize_images( $candidates, absint( $row->post_id ) );
+			if ( empty( $images ) ) {
+				continue;
+			}
+
+			$result['value']     = $row->meta_value;
+			$result['found_key'] = $row->meta_key;
+			$result['post_id']   = absint( $row->post_id );
+			return $result;
+		}
+
+		return $result;
+	}
+
+	private function build_meta_key_candidates( $meta_key ) {
+		$meta_key = trim( (string) $meta_key );
+		if ( '' === $meta_key ) {
+			return array();
+		}
+
+		$candidates = array(
+			$meta_key,
+			sanitize_key( $meta_key ),
+			sanitize_title( $meta_key ),
+			strtolower( $meta_key ),
+		);
+
+		foreach ( $candidates as $candidate ) {
+			if ( '' !== $candidate && '_' !== $candidate[0] ) {
+				$candidates[] = '_' . $candidate;
+			}
+		}
+
+		return array_values( array_unique( array_filter( $candidates, 'strlen' ) ) );
+	}
+
+	private function normalize_meta_key_for_compare( $meta_key ) {
+		$meta_key = trim( strtolower( (string) $meta_key ) );
+		$meta_key = ltrim( $meta_key, '_' );
+		return preg_replace( '/[^a-z0-9]+/', '', $meta_key );
+	}
+
+	private function meta_value_has_content( $value ) {
+		if ( is_array( $value ) ) {
+			return ! empty( $value );
+		}
+
+		if ( is_object( $value ) ) {
+			return ! empty( get_object_vars( $value ) );
+		}
+
+		return '' !== trim( (string) $value );
+	}
+
+	private function extract_image_candidates( $data ) {
+		if ( null === $data || '' === $data ) {
+			return array();
+		}
+
+		if ( is_object( $data ) ) {
+			$data = get_object_vars( $data );
+		}
+
+		if ( is_string( $data ) ) {
+			$value        = trim( $data );
+			$unserialized = maybe_unserialize( $value );
+			if ( $unserialized !== $value ) {
+				return $this->extract_image_candidates( $unserialized );
+			}
+
+			$decoded = json_decode( $value, true );
+			if ( JSON_ERROR_NONE === json_last_error() && null !== $decoded ) {
+				return $this->extract_image_candidates( $decoded );
+			}
+
+			if ( false !== strpos( $value, ',' ) ) {
+				$candidates = array();
+				foreach ( array_map( 'trim', explode( ',', $value ) ) as $part ) {
+					$candidates = array_merge( $candidates, $this->extract_image_candidates( $part ) );
+				}
+				return $candidates;
+			}
+
+			return array( $value );
+		}
+
+		if ( is_numeric( $data ) ) {
+			return array( $data );
+		}
+
+		if ( ! is_array( $data ) ) {
+			return array();
+		}
+
+		$candidates = array();
+		if ( $this->array_has_image_keys( $data ) ) {
+			return array( $data );
+		}
+
+		foreach ( $data as $value ) {
+			$candidates = array_merge( $candidates, $this->extract_image_candidates( $value ) );
+		}
+		return $candidates;
+	}
+
+	private function array_has_image_keys( $data ) {
+		foreach ( array( 'id', 'ID', 'url', 'full', 'thumb', 'src', 'image', 'attachment_id' ) as $key ) {
+			if ( array_key_exists( $key, $data ) && '' !== $data[ $key ] && null !== $data[ $key ] ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private function normalize_images( $candidates, $post_id ) {
 		$images = array();
-		foreach ( $meta as $item ) {
-			if ( is_array( $item ) && isset( $item['id'] ) ) {
-				$images[] = $this->normalize_image( array( 'id' => $item['id'] ), $settings );
-			} elseif ( is_array( $item ) && isset( $item['url'] ) ) {
-				$images[] = $this->normalize_image( array( 'url' => $item['url'] ), $settings );
-			} elseif ( is_numeric( $item ) ) {
-				$images[] = $this->normalize_image( array( 'id' => (int) $item ), $settings );
-			} elseif ( is_string( $item ) && filter_var( $item, FILTER_VALIDATE_URL ) ) {
-				$images[] = $this->normalize_image( array( 'url' => $item ), $settings );
+		$seen   = array();
+
+		foreach ( $candidates as $candidate ) {
+			$image = $this->normalize_image_candidate( $candidate, $post_id );
+			if ( empty( $image ) ) {
+				continue;
 			}
+
+			$key = $image['id'] ? 'id:' . $image['id'] : 'url:' . $image['full'];
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+
+			$seen[ $key ] = true;
+			$images[]     = $image;
 		}
 
 		return $images;
 	}
 
-	private function normalize_image( $item, $settings ) {
-		$id   = ! empty( $item['id'] ) ? absint( $item['id'] ) : 0;
-		$size = $settings['image_size'] ?? 'large';
-		$url  = '';
-		$full = '';
-		$alt  = '';
-
-		if ( $id ) {
-			$src  = wp_get_attachment_image_src( $id, $size );
-			$big  = wp_get_attachment_image_src( $id, 'full' );
-			$url  = $src ? $src[0] : '';
-			$full = $big ? $big[0] : $url;
-			$alt  = get_post_meta( $id, '_wp_attachment_image_alt', true );
-		} elseif ( ! empty( $item['url'] ) ) {
-			$url  = esc_url_raw( $item['url'] );
-			$full = $url;
+	private function normalize_image_candidate( $candidate, $post_id ) {
+		if ( is_object( $candidate ) ) {
+			$candidate = get_object_vars( $candidate );
 		}
 
+		if ( is_array( $candidate ) ) {
+			foreach ( array( 'id', 'ID', 'attachment_id' ) as $id_key ) {
+				if ( ! empty( $candidate[ $id_key ] ) ) {
+					$image = $this->image_from_id( $candidate[ $id_key ], $post_id );
+					if ( $image ) {
+						return $image;
+					}
+				}
+			}
+
+			foreach ( array( 'url', 'full', 'thumb', 'src' ) as $url_key ) {
+				if ( ! empty( $candidate[ $url_key ] ) && is_string( $candidate[ $url_key ] ) ) {
+					$image = $this->image_from_url( $candidate[ $url_key ], $post_id );
+					if ( $image ) {
+						return $image;
+					}
+				}
+			}
+
+			if ( ! empty( $candidate['image'] ) ) {
+				return $this->normalize_image_candidate( $candidate['image'], $post_id );
+			}
+
+			return null;
+		}
+
+		if ( is_numeric( $candidate ) ) {
+			return $this->image_from_id( $candidate, $post_id );
+		}
+
+		if ( is_string( $candidate ) ) {
+			$value = trim( $candidate );
+			if ( is_numeric( $value ) ) {
+				return $this->image_from_id( $value, $post_id );
+			}
+
+			return $this->image_from_url( $value, $post_id );
+		}
+
+		return null;
+	}
+
+	private function image_from_id( $id, $post_id ) {
+		$id = absint( $id );
+		if ( ! $id ) {
+			return null;
+		}
+
+		$full  = wp_get_attachment_image_url( $id, 'full' );
+		$thumb = wp_get_attachment_image_url( $id, 'large' );
+
+		if ( ! $full ) {
+			$full = wp_get_attachment_url( $id );
+		}
+
+		if ( ! $thumb ) {
+			$thumb = $full;
+		}
+
+		if ( ! $full ) {
+			return null;
+		}
+
+		$alt = get_post_meta( $id, '_wp_attachment_image_alt', true );
+		if ( '' === $alt ) {
+			$alt = get_the_title( $id );
+		}
+		if ( '' === $alt ) {
+			$alt = $post_id ? get_the_title( $post_id ) : '';
+		}
+
+		return array(
+			'id'    => $id,
+			'full'  => esc_url_raw( $full ),
+			'thumb' => esc_url_raw( $thumb ),
+			'alt'   => wp_strip_all_tags( (string) $alt ),
+		);
+	}
+
+	private function image_from_url( $url, $post_id ) {
+		$url = esc_url_raw( $url );
 		if ( empty( $url ) ) {
 			return null;
 		}
 
+		$alt = $post_id ? get_the_title( $post_id ) : '';
+
 		return array(
-			'id'   => $id,
-			'url'  => $url,
-			'full' => $full,
-			'alt'  => $alt,
+			'id'    => 0,
+			'full'  => $url,
+			'thumb' => $url,
+			'alt'   => wp_strip_all_tags( (string) $alt ),
 		);
 	}
 
-	private function get_watermark_url( $settings ) {
-		if ( empty( $settings['watermark_image'] ) || ! is_array( $settings['watermark_image'] ) ) {
+	private function apply_gallery_order( $images, $order, $post_id ) {
+		$order = strtoupper( (string) $order );
+
+		if ( 'DESC' === $order ) {
+			return array_reverse( $images );
+		}
+
+		if ( 'RANDOM' === $order ) {
+			$widget_id = method_exists( $this, 'get_id' ) ? $this->get_id() : 'widget';
+			usort(
+				$images,
+				function ( $a, $b ) use ( $post_id, $widget_id ) {
+					$a_key = md5( $post_id . '|' . $widget_id . '|' . ( $a['id'] ?: $a['full'] ) );
+					$b_key = md5( $post_id . '|' . $widget_id . '|' . ( $b['id'] ?: $b['full'] ) );
+					return strcmp( $a_key, $b_key );
+				}
+			);
+		}
+
+		return $images;
+	}
+
+	private function render_empty_debug( $debug ) {
+		echo '<div class="fs-imob-gallery__debug">';
+		echo '<strong>Nenhuma imagem encontrada. Verifique o nome do campo da galeria, o Post ID atual e se este imovel possui fotos cadastradas.</strong>';
+		echo '<dl>';
+		echo '<dt>Render executado</dt><dd>' . esc_html( $debug['render_executed'] ?? 'sim' ) . '</dd>';
+		echo '<dt>Post ID detectado</dt><dd>' . esc_html( (string) ( $debug['post_id'] ?? 0 ) ) . '</dd>';
+		echo '<dt>Nome do campo configurado</dt><dd>' . esc_html( $debug['field'] ?? '' ) . '</dd>';
+		echo '<dt>Campo detectado na dynamic tag</dt><dd>' . esc_html( $debug['dynamic_field'] ?? '' ) . '</dd>';
+		echo '<dt>Meta key encontrada</dt><dd>' . esc_html( $debug['found_meta_key'] ?? '' ) . '</dd>';
+		echo '<dt>Post encontrado por fallback</dt><dd>' . esc_html( (string) ( $debug['fallback_post_id'] ?? 0 ) ) . '</dd>';
+		echo '<dt>Origem selecionada</dt><dd>' . esc_html( $debug['selected_source'] ?? '' ) . '</dd>';
+		echo '<dt>Origem usada</dt><dd>' . esc_html( $debug['used_source'] ?? '' ) . '</dd>';
+		echo '<dt>Tipo do dado retornado por get_post_meta</dt><dd>' . esc_html( $debug['meta_type'] ?? '' ) . '</dd>';
+		echo '<dt>Quantidade antes da normalizacao</dt><dd>' . esc_html( (string) ( $debug['before_count'] ?? 0 ) ) . '</dd>';
+		echo '<dt>Quantidade depois da normalizacao</dt><dd>' . esc_html( (string) ( $debug['after_count'] ?? 0 ) ) . '</dd>';
+		echo '<dt>Chaves testadas</dt><dd><pre>' . esc_html( implode( ', ', $debug['candidate_keys'] ?? array() ) ) . '</pre></dd>';
+		echo '<dt>Meta keys existentes nesse post</dt><dd><pre>' . esc_html( implode( ', ', $this->limit_debug_keys( $debug['available_keys'] ?? array() ) ) ) . '</pre></dd>';
+		echo '<dt>Amostra segura do formato retornado</dt><dd><pre>' . esc_html( $debug['sample'] ?? '' ) . '</pre></dd>';
+		echo '</dl>';
+		echo '</div>';
+	}
+
+	private function limit_debug_keys( $keys ) {
+		if ( ! is_array( $keys ) ) {
+			return array();
+		}
+
+		$keys = array_values( array_unique( array_map( 'strval', $keys ) ) );
+		sort( $keys );
+
+		if ( count( $keys ) > 80 ) {
+			$keys = array_slice( $keys, 0, 80 );
+			$keys[] = '...';
+		}
+
+		return $keys;
+	}
+
+	private function safe_debug_sample( $data ) {
+		if ( is_object( $data ) ) {
+			$data = get_object_vars( $data );
+		}
+
+		$sample = wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		if ( false === $sample ) {
+			$sample = $this->data_type( $data );
+		}
+
+		if ( strlen( $sample ) > 1200 ) {
+			$sample = substr( $sample, 0, 1200 ) . '...';
+		}
+
+		return $sample;
+	}
+
+	private function data_type( $data ) {
+		if ( is_object( $data ) ) {
+			return 'object:' . get_class( $data );
+		}
+
+		if ( is_array( $data ) ) {
+			return 'array(' . count( $data ) . ')';
+		}
+
+		return gettype( $data );
+	}
+
+	private function get_watermark_url( $settings, $raw_settings = array() ) {
+		$source      = $settings['watermark_source'] ?? 'manual';
+		$post_id     = $this->detect_current_post_id( $settings );
+		$dynamic_key = $this->extract_dynamic_image_field( $raw_settings, 'watermark_image' );
+		$meta_key    = isset( $settings['watermark_meta_key'] ) ? trim( (string) $settings['watermark_meta_key'] ) : '';
+
+		if ( 'manual' === $source && ! empty( $settings['watermark_image'] ) && is_array( $settings['watermark_image'] ) ) {
+			$image = $this->normalize_image_candidate( $settings['watermark_image'], $post_id );
+			if ( ! empty( $image['full'] ) ) {
+				return $image['full'];
+			}
+		}
+
+		if ( '' === $meta_key && '' !== $dynamic_key ) {
+			$meta_key = $dynamic_key;
+		}
+
+		if ( '' === $meta_key ) {
 			return '';
 		}
 
-		if ( ! empty( $settings['watermark_image']['url'] ) ) {
-			return esc_url_raw( $settings['watermark_image']['url'] );
+		$lookup = $this->get_meta_lookup( $post_id, $meta_key );
+		$image  = $this->first_image_from_value( $lookup['value'] ?? null, $post_id );
+
+		if ( $image ) {
+			return $image['full'];
 		}
 
-		if ( ! empty( $settings['watermark_image']['id'] ) ) {
-			return wp_get_attachment_url( absint( $settings['watermark_image']['id'] ) );
+		$fallback_lookup = $this->find_post_with_meta_gallery( $meta_key, $post_id );
+		if ( ! empty( $fallback_lookup['post_id'] ) ) {
+			$image = $this->first_image_from_value( $fallback_lookup['value'], absint( $fallback_lookup['post_id'] ) );
+			if ( $image ) {
+				return $image['full'];
+			}
 		}
 
 		return '';
+	}
+
+	private function first_image_from_value( $value, $post_id ) {
+		$candidates = $this->extract_image_candidates( $value );
+		$images     = $this->normalize_images( $candidates, $post_id );
+
+		return $images[0] ?? null;
 	}
 
 	private function render_attrs( $attrs ) {

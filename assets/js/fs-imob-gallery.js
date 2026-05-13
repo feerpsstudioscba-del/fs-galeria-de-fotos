@@ -27,6 +27,7 @@
 		lightbox.setAttribute('aria-modal', 'true');
 		lightbox.innerHTML = [
 			'<button class="fs-imob-gallery-lightbox__button fs-imob-gallery-lightbox__close" type="button" aria-label="Fechar">×</button>',
+			'<span class="fs-imob-gallery-lightbox__count" aria-live="polite"></span>',
 			'<button class="fs-imob-gallery-lightbox__button fs-imob-gallery-lightbox__prev" type="button" aria-label="Imagem anterior">‹</button>',
 			'<div class="fs-imob-gallery-lightbox__stage">',
 			'<figure class="fs-imob-gallery-lightbox__figure">',
@@ -113,14 +114,16 @@
 		var item = state.images[state.index];
 		var image = lightbox.querySelector('.fs-imob-gallery-lightbox__image');
 		var figure = lightbox.querySelector('.fs-imob-gallery-lightbox__figure');
+		var count = lightbox.querySelector('.fs-imob-gallery-lightbox__count');
 		var oldWatermark = figure.querySelector('.fs-imob-gallery-lightbox__watermark');
 
 		if (oldWatermark) {
 			oldWatermark.remove();
 		}
 
-		image.src = item.full || item.url;
+		image.src = item.full || item.thumb || '';
 		image.alt = item.alt || '';
+		count.textContent = (state.index + 1) + '/' + state.images.length;
 
 		if (state.gallery.dataset.watermark === 'yes' && state.gallery.dataset.wmSrc) {
 			figure.appendChild(createWatermark(state.gallery));
